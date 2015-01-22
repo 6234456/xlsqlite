@@ -44,7 +44,7 @@ def xl2sql(wb = None, sht = None, db = "src.db", tbl = "src"):
 	cursor.execute(sql_create_table)
 
 	# insert the records
-	sql_insert_value = "INSERT INTO [" + sheet.name + "] VALUES ( "
+	sql_insert_value = "INSERT INTO [" + tbl + "] VALUES ( "
 	for r in range(1, sheet.nrows):
 		for c in range(sheet.ncols):
 			if types[c]:
