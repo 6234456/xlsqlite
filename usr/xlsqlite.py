@@ -61,7 +61,7 @@ def xl2sql(wb = None, sht = None, db = "src.db", tbl = "src"):
 			print sql_insert_value
 			return
 
-		sql_insert_value = "INSERT INTO [" + sheet.name + "] VALUES ( "
+		sql_insert_value = "INSERT INTO [" + tbl + "] VALUES ( "
 	
 	conn.commit()
 	conn.close()
