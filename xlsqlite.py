@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 '''
 new feature: export to .sql file
+new feature: insert mode
 
 '''
 
 
-def xl2sql(wb = None, sht = None, db = "src.db", tbl = "src"):
+def xl2sql(wb = None, sht = None, db = "src.db", tbl = "src", overwrite_when_tbl_exists = True):
 	from xlrd import open_workbook
 	import os
+	
+	valuestr = ""
 	
 	os.chdir("\\".join(str(__file__).split("\\")[:-1]))
 	
@@ -39,23 +42,26 @@ def xl2sql(wb = None, sht = None, db = "src.db", tbl = "src"):
 		cursor.execute(sql_create_table)
 		conn.commit()
 	else:
-		sqlstr = ""
+		sqlstr = "BEGIN;\n"
 	
 	
 	sql_create_table = "CREATE TABLE [" + tbl + "] ( "
 	
 	for c in range(sheet.ncols):
+		valuestr =  valuestr + " ["+ sheet.cell(0,c).value +"],"
+		
 		callbacks[c], types[c] = type_mapping(sheet.cell(1,c).ctype)
 		if types[c]:
 			sql_create_table = sql_create_table + " [" + sheet.cell(0,c).value +"] " + types[c] + ","
 		
 	sql_create_table = sql_create_table[:-1] + " );"
+	valuestr = valuestr[:-1]
 	
-	if export_to_db:
+	if export_to_db and overwrite_when_tbl_exists:
 		cursor.execute(sql_create_table)
 
 	# insert the records
-	sql_insert_value = "INSERT INTO [" + tbl + "] VALUES ( "
+	sql_insert_value = "INSERT INTO [" + tbl + "] ( " + valuestr + " ) VALUES ( "
 	for r in range(1, sheet.nrows):
 		for c in range(sheet.ncols):
 			if types[c]:
@@ -75,12 +81,13 @@ def xl2sql(wb = None, sht = None, db = "src.db", tbl = "src"):
 			print sql_insert_value
 			return
 
-		sql_insert_value = "INSERT INTO [" + tbl + "] VALUES ( "
+		sql_insert_value = "INSERT INTO [" + tbl + "] ( " + valuestr + " ) VALUES ( "
 	
 	if export_to_db:
 		conn.commit()
 		conn.close()
 	else:
+		sqlstr = sqlstr + "COMMIT;"
 		f = open(db,"w")
 		f.write(sqlstr.encode('utf8'))
 		f.close()
@@ -154,4 +161,5 @@ def sql2xl(db = "src.db", tbl = "src", query = None, wb = None):
 		
 
 if __name__ == "__main__":
-	xl2sql(wb = "umsatz", db = "umsatz.db", tbl = "sales_umsatz")
+	xl2sql(wb = "kunde", db = "db.sql", tbl = "sales_kunde")
+	# xl2sql(wb = "umsatz", db = "db.sqlite3", tbl = "sales_umsatz")
