@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
+'''
+new feature: export to .sql file
 
+'''
 
 
 def xl2sql(wb = None, sht = None, db = "src.db", tbl = "src"):
 	from xlrd import open_workbook
 	import os
-	import sqlite3
+	
 	os.chdir("\\".join(str(__file__).split("\\")[:-1]))
 	
 	if not wb:
@@ -18,8 +21,12 @@ def xl2sql(wb = None, sht = None, db = "src.db", tbl = "src"):
 	else:
 		sheet = book.sheet_by_name(sht)
 		
-	conn = sqlite3.connect(db)
-	cursor = conn.cursor();
+	export_to_db = not db.endswith(".sql")
+	
+	if export_to_db:
+		import sqlite3
+		conn = sqlite3.connect(db)
+		cursor = conn.cursor();
 	
 	# check the data type of the cells, store in the dict col => (callback, name)
 	types = {}
@@ -27,8 +34,12 @@ def xl2sql(wb = None, sht = None, db = "src.db", tbl = "src"):
 	
 	
 	sql_create_table = "drop table if exists ["+ tbl +"];" 
-	cursor.execute(sql_create_table)
-	conn.commit()
+	
+	if export_to_db:
+		cursor.execute(sql_create_table)
+		conn.commit()
+	else:
+		sqlstr = ""
 	
 	
 	sql_create_table = "CREATE TABLE [" + tbl + "] ( "
@@ -39,8 +50,9 @@ def xl2sql(wb = None, sht = None, db = "src.db", tbl = "src"):
 			sql_create_table = sql_create_table + " [" + sheet.cell(0,c).value +"] " + types[c] + ","
 		
 	sql_create_table = sql_create_table[:-1] + " );"
-
-	cursor.execute(sql_create_table)
+	
+	if export_to_db:
+		cursor.execute(sql_create_table)
 
 	# insert the records
 	sql_insert_value = "INSERT INTO [" + tbl + "] VALUES ( "
@@ -55,15 +67,23 @@ def xl2sql(wb = None, sht = None, db = "src.db", tbl = "src"):
 		sql_insert_value = sql_insert_value[:-1] + ");"
 		
 		try:
-			cursor.execute(sql_insert_value)
+			if export_to_db:
+				cursor.execute(sql_insert_value)
+			else:
+				sqlstr = sqlstr  + "\n"+ sql_insert_value
 		except sqlite3.OperationalError:
 			print sql_insert_value
 			return
 
 		sql_insert_value = "INSERT INTO [" + tbl + "] VALUES ( "
 	
-	conn.commit()
-	conn.close()
+	if export_to_db:
+		conn.commit()
+		conn.close()
+	else:
+		f = open(db,"w")
+		f.write(sqlstr.encode('utf8'))
+		f.close()
 			
 def xldate2str(d):
 	from xlrd import xldate_as_tuple
@@ -134,4 +154,4 @@ def sql2xl(db = "src.db", tbl = "src", query = None, wb = None):
 		
 
 if __name__ == "__main__":
-	xl2sql(wb = "bilanz", db = "database.db", tbl = "bilanz")
+	xl2sql(wb = "umsatz", db = "umsatz.db", tbl = "sales_umsatz")
